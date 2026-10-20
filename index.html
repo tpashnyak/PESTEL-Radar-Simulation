@@ -1,0 +1,748 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PESTEL Radar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: radar-console header, tab strip by CED topic, one working panel per tab. Midnight Executive: navy + gold. */
+:root{
+  --bg:#0b1730; --panel:#11224a; --raised:#182e5e; --line:#2a4478; --fg:#e9eef8; --muted:#a3b3d1;
+  --gold:#d4af37; --gold-ink:#0b1730; --good:#4fbf8b; --bad:#e8806f; --mid:#e2b24a;
+  --fP:#e9806f; --fEc:#eaa452; --fS:#d892cb; --fT:#74b5ee; --fEn:#5cc6a9; --fL:#aaa1f2;
+  --display:"Playfair Display", Georgia, "Times New Roman", serif;
+  --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  --bg:#edf1f8; --panel:#ffffff; --raised:#e2e8f3; --line:#c3cee2; --fg:#0f1f3f; --muted:#4a5a78;
+  --gold:#8f6c0f; --gold-ink:#ffffff; --good:#1d8558; --bad:#b4412e; --mid:#9a6a0c;
+  --fP:#b34a3b; --fEc:#b5641a; --fS:#9e4489; --fT:#2a6cae; --fEn:#18866b; --fL:#5b4fc0; color-scheme:light; } }
+:root[data-theme="light"]{
+  --bg:#edf1f8; --panel:#ffffff; --raised:#e2e8f3; --line:#c3cee2; --fg:#0f1f3f; --muted:#4a5a78;
+  --gold:#8f6c0f; --gold-ink:#ffffff; --good:#1d8558; --bad:#b4412e; --mid:#9a6a0c;
+  --fP:#b34a3b; --fEc:#b5641a; --fS:#9e4489; --fT:#2a6cae; --fEn:#18866b; --fL:#5b4fc0; color-scheme:light; }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 var(--body);}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 56px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:clamp(2rem,5vw,3rem)} h2{font-size:clamp(1.45rem,3.2vw,1.9rem)} h3{font-size:1.2rem}
+p{margin:0} .muted{color:var(--muted)}
+.mono,.label{font-family:var(--mono)}
+.label{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%}
+textarea{min-height:64px;resize:vertical}
+
+/* header */
+.hero{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;padding-block:8px 18px;border-bottom:1px solid var(--line)}
+.radar{width:110px;height:110px;border-radius:50%;position:relative;border:1px solid var(--gold);
+  background:radial-gradient(circle, transparent 0 32%, var(--line) 32.5% 33.5%, transparent 34% 65%, var(--line) 65.5% 66.5%, transparent 67%);}
+.radar .sweep{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg, color-mix(in srgb, var(--gold) 55%, transparent), transparent 22%);animation:spin 5s linear infinite}
+.radar .dot{position:absolute;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);font:600 8px/12px var(--mono);text-align:center;color:var(--bg)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.radar .sweep{animation:none}}
+.hero p{max-width:62ch;margin-top:6px}
+@media (max-width:520px){.hero{grid-template-columns:1fr}.radar{width:84px;height:84px}}
+
+/* tabs */
+.tabs-scroll{overflow-x:auto;margin-block:18px 22px;-webkit-overflow-scrolling:touch}
+.tabs{display:flex;gap:6px;min-width:max-content;padding-bottom:4px}
+.tab{background:transparent;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:.88rem;display:flex;gap:8px;align-items:center;white-space:nowrap}
+.tab .code{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+.tab[aria-selected="true"] .code{color:var(--gold-ink)}
+.tab-sep{width:1px;background:var(--line);margin:4px 4px}
+
+.panel{display:grid;gap:22px}
+.plug{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-family:var(--mono);font-size:.78rem;color:var(--muted);border:1px dashed var(--line);border-radius:8px;padding:10px 14px}
+.plug b{color:var(--fg);font-weight:500}
+.section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;display:grid;gap:14px;min-width:0}
+.section-head{display:grid;gap:4px}
+.lede{max-width:68ch}
+
+/* factor chips */
+.chip{display:inline-flex;align-items:center;gap:6px;font:500 .78rem/1 var(--mono);padding:4px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.dotf{width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;font:600 .7rem/1 var(--mono);color:var(--bg);flex:none}
+.c-P{color:var(--fP)} .c-Ec{color:var(--fEc)} .c-S{color:var(--fS)} .c-T{color:var(--fT)} .c-En{color:var(--fEn)} .c-L{color:var(--fL)}
+.b-P{background:var(--fP)} .b-Ec{background:var(--fEc)} .b-S{background:var(--fS)} .b-T{background:var(--fT)} .b-En{background:var(--fEn)} .b-L{background:var(--fL)}
+
+/* level 1 cards */
+.forces{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.force{border:1px solid var(--line);border-top:4px solid currentColor;border-radius:10px;padding:14px;display:grid;gap:8px;background:var(--bg);min-width:0}
+.force h3{display:flex;gap:10px;align-items:center;color:var(--fg)}
+.force .ex{font-size:.9rem;color:var(--muted)}
+.force .why{font-size:.92rem;color:var(--fg);border-left:2px solid currentColor;padding-left:10px}
+.linkbtn{background:none;border:none;padding:0;color:var(--gold);text-decoration:underline;text-underline-offset:3px;font-size:.88rem;justify-self:start}
+
+/* deck */
+.deck{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:18px;display:grid;gap:14px;min-width:0}
+.deck-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.bar{height:4px;background:var(--line);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--gold);transition:width .3s}
+.ctx{font-family:var(--mono);font-size:.78rem;color:var(--gold)}
+.prompt{font-size:1.08rem;font-weight:500;max-width:70ch}
+.part{display:grid;gap:8px}
+.part .q{font-size:.86rem;color:var(--muted)}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts.stack{flex-direction:column}
+.opt{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;text-align:left;display:flex;gap:8px;align-items:center;min-width:0}
+.opts.stack .opt{width:100%}
+.opt:hover{border-color:var(--gold)}
+.opt[aria-pressed="true"]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.opt.right{border-color:var(--good);box-shadow:inset 0 0 0 2px var(--good)}
+.opt.wrong{border-color:var(--bad);box-shadow:inset 0 0 0 2px var(--bad);opacity:.85}
+.opt:disabled{cursor:default}
+.opt .ltr{font-family:var(--mono);font-weight:500;color:var(--gold)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{background:var(--gold);color:var(--gold-ink);border:1px solid var(--gold);border-radius:8px;padding:9px 16px;font-weight:600}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.fb{border-radius:8px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);display:grid;gap:6px;font-size:.95rem}
+.fb .verdict{font-weight:600}
+.fb.ok .verdict{color:var(--good)} .fb.no .verdict{color:var(--bad)} .fb.part .verdict{color:var(--mid)}
+.done{display:grid;gap:10px;text-align:left}
+.big{font:700 2.2rem/1 var(--display);color:var(--gold)}
+
+/* businesses */
+.biz-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.biz{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:left;display:grid;gap:4px}
+.biz[aria-pressed="true"]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.biz .nm{font-family:var(--display);font-size:1.1rem;font-weight:700}
+.biz .st{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.profile{display:grid;grid-template-columns:1fr 260px;gap:16px;align-items:start}
+@media (max-width:760px){.profile{grid-template-columns:1fr}}
+.meter{border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:8px;background:var(--bg)}
+.meter-track{position:relative;height:12px;border-radius:6px;background:linear-gradient(90deg,var(--bad),var(--mid),var(--good))}
+.meter-needle{position:absolute;top:-5px;width:4px;height:22px;background:var(--fg);border-radius:2px;transform:translateX(-50%);transition:left .5s}
+.meter-scale{display:flex;justify-content:space-between;font:.7rem var(--mono);color:var(--muted)}
+.meter-read{font-family:var(--mono);font-size:.85rem}
+
+/* tables / calc */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.field{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+.field output{font-family:var(--mono);color:var(--fg)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}
+.stat .v{font:600 1.35rem/1.2 var(--mono);font-variant-numeric:tabular-nums}
+.stat .k{font-size:.78rem;color:var(--muted)}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font:500 .72rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+@media (max-width:520px){th,td{padding:6px 5px;font-size:.8rem}}
+td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.events{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.event{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg);display:grid;gap:8px;align-content:start}
+.event.on{border-color:var(--gold)}
+.event .fx{font:.78rem var(--mono);color:var(--muted)}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+svg text{fill:var(--muted);font-family:var(--mono);font-size:11px}
+
+/* builder */
+.fblock{border:1px solid var(--line);border-left:4px solid currentColor;border-radius:10px;padding:14px;display:grid;gap:10px;background:var(--bg);min-width:0}
+.fblock > header{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;color:var(--fg)}
+.fblock details{color:var(--muted);font-size:.88rem}
+.fblock summary{cursor:pointer;color:var(--gold)}
+.frow{display:grid;grid-template-columns:1.3fr 1.1fr .8fr .7fr 1.3fr;gap:8px;align-items:start;color:var(--fg)}
+.frow .sc{grid-column:1/-1;display:flex;gap:8px;align-items:center;font-size:.82rem;color:var(--muted)}
+.frow .sc input{width:auto}
+.frow-head{font:500 .68rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+@media (max-width:860px){.frow{grid-template-columns:1fr 1fr}.frow-head{display:none}.frow > *:nth-child(1),.frow > *:nth-child(5){grid-column:1/-1}}
+.rowsep{border-top:1px dashed var(--line);padding-top:10px}
+.summary-bars{display:grid;gap:8px}
+.sb{display:grid;grid-template-columns:120px 1fr 1fr;gap:8px;align-items:center;font-size:.85rem}
+.sb .l{font-family:var(--mono)}
+.sb .t,.sb .o{height:14px;border-radius:3px;background:var(--line);position:relative;overflow:hidden}
+.sb .t i{position:absolute;right:0;top:0;bottom:0;background:var(--bad)}
+.sb .o i{position:absolute;left:0;top:0;bottom:0;background:var(--good)}
+.verdict-box{border:1px solid var(--gold);border-radius:10px;padding:14px;display:grid;gap:6px}
+.checklist{display:flex;flex-wrap:wrap;gap:6px}
+.toast{font:.8rem var(--mono);color:var(--good)}
+.example-tag{display:inline-block;font:500 .72rem var(--mono);color:var(--mid);border:1px solid var(--mid);border-radius:4px;padding:2px 6px}
+.steps-nav{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="radar" aria-hidden="true"><div class="sweep"></div></div>
+    <div>
+      <div class="label">AP Business with Personal Finance · Topic 1.3 and beyond</div>
+      <h1>PESTEL Radar</h1>
+      <p class="muted">Scan the six outside forces that shape every market: Political, Economic, Social, Technological, Environmental, and Legal. Start with the Radar Academy, then use the lesson tabs whenever PESTEL comes back in the course.</p>
+    </div>
+  </header>
+
+  <div class="tabs-scroll"><div class="tabs" role="tablist" id="tabs"></div></div>
+  <main id="panels"></main>
+  <p class="muted mono" style="font-size:.75rem;margin-top:28px">All businesses, households, headlines, and figures in this simulation are fictional and were made up for practice. EK codes refer to the AP Business with Personal Finance Course and Exam Description.</p>
+</div>
+
+<script>
+/* ---------- core data ---------- */
+const F = [
+ {k:'P', l:'P', name:'Political', ek:'1.3.A.2', def:'Policies and political dynamics that affect market activity.', ex:'Trade policy, taxes and subsidies, mandates, bans, political stability.', why:'The political system and specific policies encourage some business activities and discourage others. Subsidies and mandates support activities; bans limit them; taxes fund government and can limit activities. (EK 1.3.B.1)'},
+ {k:'Ec',l:'E', name:'Economic', ek:'1.3.A.3', def:'Aspects of the economy that affect market activity.', ex:'Economic stability, household income levels, inflation, unemployment, interest rates.', why:'How stable and strong the economy is shapes how much consumers, businesses, and government spend. Most businesses do better in a strong economy, but some thrive by serving customers in a weak one. (EK 1.3.B.2)'},
+ {k:'S', l:'S', name:'Social', ek:'1.3.A.4', def:'Trends in society and culture that affect consumers, and therefore market activity.', ex:'Consumer demographics, cultural norms, lifestyle trends, population growth rate.', why:'Consumer businesses survive by meeting needs and wants, and those are shaped by demographics, cultural norms, and trends. (EK 1.3.B.3)'},
+ {k:'T', l:'T', name:'Technological', ek:'1.3.A.5', def:'Features of a market related to the availability of technology.', ex:'Internet access, automation of production, rate of technological innovation.', why:'Production, distribution, and communication with customers all depend on the technology that is available. (EK 1.3.B.4)'},
+ {k:'En',l:'E', name:'Environmental', ek:'1.3.A.6', def:'External environmental conditions that promote or limit market activity.', ex:'Geography, access to renewable and nonrenewable resources, waste management policies, consumer environmental perspectives.', why:'Climate, resources, and natural disasters can limit production and distribution, and customers’ environmental views shape what they buy. (EK 1.3.B.5)'},
+ {k:'L', l:'L', name:'Legal', ek:'1.3.A.7', def:'Specific laws, rules, or regulations that impact market activity.', ex:'Employment laws, consumer protection, health and safety laws, environmental regulations, intellectual property, antitrust.', why:'Laws change operating costs and decide whether some operations are allowed at all. (EK 1.3.B.6)'}
+];
+const FI = Object.fromEntries(F.map((f,i)=>[f.k,i]));
+const fChip = k => `<span class="chip c-${k}"><span class="dotf b-${k}">${F[FI[k]].l}</span>${F[FI[k]].name}</span>`;
+const PF = k => ({q:'Which PESTEL factor is this?', factor:true, opts:F.map(f=>f.name), ans:FI[k]});
+const IMP = {O:0,T:1,B:2};
+const PI = v => ({q:'For this business, it is mainly…', opts:['Opportunity','Threat','Both'], ans:IMP[v]});
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const $ = (s,r=document)=>r.querySelector(s);
+const store = { get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}} };
+
+/* ---------- Deck: one question at a time, multi-part ---------- */
+function Deck(root, cfg){
+  let order, idx, score, total, picks;
+  const start = () => { const items = typeof cfg.items==='function' ? cfg.items() : cfg.items; order = cfg.shuffle ? shuffle(items) : items.slice(); idx=0; score=0; total=order.reduce((n,it)=>n+it.parts.length,0); cfg.onStart && cfg.onStart(); render(); };
+  function render(){
+    if(idx>=order.length) return finish();
+    const it = order[idx]; picks = it.parts.map(()=>null);
+    root.innerHTML = `
+      <div class="deck-top"><span>${esc(cfg.unit||'Question')} ${idx+1} of ${order.length}</span><span>Score ${score} / ${total}</span></div>
+      <div class="bar"><i style="width:${idx/order.length*100}%"></i></div>
+      ${it.ctx?`<div class="ctx">${esc(it.ctx)}</div>`:''}
+      <div class="prompt">${it.prompt}</div>
+      ${it.parts.map((p,pi)=>`<div class="part" role="group" aria-label="${esc(p.q)}"><div class="q">${esc(p.q)}</div>
+        <div class="opts ${p.factor?'':(cfg.lettered||p.stack?'stack':'')}">${p.opts.map((o,oi)=>`<button class="opt" type="button" data-p="${pi}" data-o="${oi}" aria-pressed="false">${p.factor?`<span class="dotf b-${F[oi].k}">${F[oi].l}</span>`:''}${cfg.lettered?`<span class="ltr">${'ABCD'[oi]}.</span>`:''}<span>${esc(o)}</span></button>`).join('')}</div></div>`).join('')}
+      <div class="actions"><button class="btn" type="button" data-act="check" disabled>Check</button></div>
+      <div aria-live="polite" class="fbz"></div>`;
+    root.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+      const pi=+b.dataset.p; picks[pi]=+b.dataset.o;
+      root.querySelectorAll(`.opt[data-p="${pi}"]`).forEach(x=>x.setAttribute('aria-pressed', x===b?'true':'false'));
+      root.querySelector('[data-act=check]').disabled = picks.some(v=>v===null);
+    });
+    root.querySelector('[data-act=check]').onclick = check;
+  }
+  function check(){
+    const it = order[idx]; let got=0;
+    it.parts.forEach((p,pi)=>{
+      root.querySelectorAll(`.opt[data-p="${pi}"]`).forEach(b=>{ const o=+b.dataset.o; b.disabled=true; if(o===p.ans) b.classList.add('right'); else if(o===picks[pi]) b.classList.add('wrong'); });
+      if(picks[pi]===p.ans) got++;
+    });
+    score+=got;
+    const all = got===it.parts.length, none = got===0;
+    const cls = all?'ok':(none?'no':'part');
+    const verdict = all ? (it.parts.length>1?'Both calls correct.':'Correct.') : none ? 'Not this time. Here is the reasoning:' : `${got} of ${it.parts.length} correct.`;
+    const ansLine = it.parts.map(p=> p.factor ? fChip(F[p.ans].k) : `<span class="mono">${cfg.lettered?'ABCD'[p.ans]+'. ':''}${esc(p.opts[p.ans])}</span>`).join(' · ');
+    root.querySelector('.fbz').innerHTML = `<div class="fb ${cls}"><div class="verdict">${verdict}</div><div>${ansLine}</div><div>${it.why}</div></div>`;
+    const act = root.querySelector('.actions');
+    act.innerHTML = `<button class="btn" type="button">${idx+1<order.length?'Next':'See results'}</button>`;
+    act.firstChild.onclick=()=>{idx++;render();};
+    act.firstChild.focus();
+    cfg.onReveal && cfg.onReveal(it, got, picks);
+  }
+  function finish(){
+    const pct = total? Math.round(score/total*100):0;
+    const msg = pct>=85 ? 'Sharp radar. You read the signals like an analyst.' : pct>=60 ? 'Solid scan. Review the ones you missed and try again.' : 'Some signals slipped past. Re-read the factor cards and run it again.';
+    root.innerHTML = `<div class="done"><div class="label">${esc(cfg.doneLabel||'Results')}</div><div class="big">${score} / ${total}</div><p>${msg}</p>${cfg.doneHTML?cfg.doneHTML(score,total):''}<div class="actions"><button class="btn ghost" type="button">Try again${cfg.shuffle?' (new order)':''}</button></div></div>`;
+    root.querySelector('.done .btn.ghost').onclick=start;
+    cfg.onFinish && cfg.onFinish(score,total);
+  }
+  start();
+  return {restart:start};
+}
+const MCQ = (prompt, opts, ans, why) => ({prompt, parts:[{q:'Choose the best answer.', opts, ans}], why});
+
+/* ---------- tabs ---------- */
+const TABS = [
+  {id:'learn', code:'1.3', name:'Radar Academy'},
+  {sep:true},
+  {id:'research', code:'2.3', name:'Research Desk'},
+  {id:'saving', code:'3.1', name:'Savings Under Pressure'},
+  {id:'investing', code:'3.5', name:'Market Pulse'},
+  {id:'planning', code:'3.6', name:'Budget Storm'},
+  {id:'swot', code:'4.4', name:'PESTEL to SWOT'},
+  {id:'advisor', code:'Unit 5', name:'Advisor’s Radar'},
+  {sep:true},
+  {id:'project', code:'BCP', name:'Practice + Business Canvas Project'},
+  {id:'teacher', code:'Guide', name:'Teacher Map'}
+];
+const tabsEl = $('#tabs'), panelsEl = $('#panels');
+const built = {};
+TABS.forEach(t=>{
+  if(t.sep){ const s=document.createElement('span'); s.className='tab-sep'; tabsEl.appendChild(s); return; }
+  const b=document.createElement('button'); b.className='tab'; b.type='button'; b.setAttribute('role','tab'); b.id='tab-'+t.id; b.setAttribute('aria-controls','panel-'+t.id);
+  b.innerHTML=`<span class="code">${t.code}</span>${t.name}`; b.onclick=()=>show(t.id,true); tabsEl.appendChild(b);
+  const p=document.createElement('section'); p.className='panel'; p.id='panel-'+t.id; p.setAttribute('role','tabpanel'); p.setAttribute('aria-labelledby','tab-'+t.id); p.hidden=true; panelsEl.appendChild(p);
+});
+function show(id, user){
+  if(!BUILD[id]) id='learn';
+  TABS.filter(t=>!t.sep).forEach(t=>{ $('#tab-'+t.id).setAttribute('aria-selected', t.id===id?'true':'false'); $('#panel-'+t.id).hidden = t.id!==id; });
+  if(!built[id]){ BUILD[id]($('#panel-'+id)); built[id]=true; }
+  if(user){ try{history.replaceState(null,'','#'+id)}catch(e){} store.set('pestelRadar.tab',id); $('#tab-'+id).scrollIntoView({block:'nearest',inline:'nearest'}); }
+}
+const plug = (topic, lo, mins, when, id) => `<div class="plug"><span>Plug in at <b>${topic}</b></span><span><b>${lo}</b></span><span>About <b>${mins}</b></span><span>${when}</span><span>Direct link: <b>#${id}</b></span></div>`;
+
+/* ---------- LEARN ---------- */
+const SIGNALS = [
+ {k:'P', t:'State lawmakers approve a $5,000 grant for small businesses that open in rural downtowns.', w:'A grant is a subsidy, and subsidies are political: government policy that encourages a business activity (EK 1.3.A.2).'},
+ {k:'P', t:'New tariffs raise the cost of imported bicycle parts by 20%.', w:'Tariffs are trade policy, a political factor (EK 1.3.A.2).'},
+ {k:'Ec',t:'Inflation pushes grocery prices up 6% from last year.', w:'Inflation is an economic factor that changes what households can afford (EK 1.3.A.3).'},
+ {k:'Ec',t:'A regional factory closes and county unemployment jumps to 9%.', w:'Unemployment and household income are economic factors (EK 1.3.A.3). This also shows job loss from a changing market (EK 1.3.B.8).'},
+ {k:'S', t:'Survey: most teen shoppers in Pine Hollow say they would rather buy secondhand clothes.', w:'A lifestyle trend among consumers is a social factor (EK 1.3.A.4).'},
+ {k:'S', t:'Residents over 65 are the fastest-growing age group in the county.', w:'Consumer demographics are a social factor (EK 1.3.A.4).'},
+ {k:'T', t:'Fiber high-speed internet now reaches every home in Pine Hollow County.', w:'Internet access is a technological factor (EK 1.3.A.5).'},
+ {k:'T', t:'A new robot arm can bag groceries for a fraction of the cost of a cashier.', w:'Automation of production processes is a technological factor (EK 1.3.A.5).'},
+ {k:'En',t:'Drought cuts the regional peanut harvest by a third.', w:'Climate and access to resources are environmental factors (EK 1.3.A.6).'},
+ {k:'En',t:'Shoppers increasingly refuse to buy from brands that use plastic packaging.', w:'Tricky one. It sounds social, but the CED lists consumer environmental perspectives as an environmental factor (EK 1.3.A.6).'},
+ {k:'L', t:'A new state rule requires every food truck to pass a health inspection each quarter.', w:'Health and safety laws are legal factors (EK 1.3.A.7). Political is about policy direction; legal is the specific law or regulation a business must follow.'},
+ {k:'L', t:'A court rules that a rival copied a startup’s patented design.', w:'Intellectual property protection is a legal factor (EK 1.3.A.7).'}
+];
+
+const BIZ = [
+ {id:'sprout', name:'Sprout & Spoon', type:'Farm-to-table food truck', where:'Pine Hollow, a small town near a community college',
+  desc:'Two cousins want to launch a food truck that serves seasonal bowls made with produce from farms within 50 miles. They have one truck, a small loan, and a menu that changes with the harvest.',
+  signals:[
+   {k:'P', v:'O', w:1, t:'The county cuts permit fees in half for vendors who buy from local farms.', y:'A political incentive (a fee reduction works like a subsidy) that rewards exactly what Sprout & Spoon already does.'},
+   {k:'Ec',v:'T', w:-1, t:'Diesel and propane prices are up 18% this year.', y:'Rising input costs are economic and raise the cost of running the truck.'},
+   {k:'S', v:'O', w:2, t:'Students at the college are posting “eat local” challenges on social media.', y:'A lifestyle trend among the target customers is a strong social opportunity (EK 1.3.B.3).'},
+   {k:'T', v:'B', w:0, t:'Delivery apps arrive in town. They can bring new customers but charge a 25% commission per order.', y:'Technology opens a new channel (opportunity) but cuts margin on every order (threat), so it is both.'},
+   {k:'En',v:'T', w:-1, t:'A late frost damages local strawberry and peach crops.', y:'Climate limits access to the resources the menu depends on (EK 1.3.B.5).'},
+   {k:'L', v:'T', w:-1, t:'A new state rule requires a certified food protection manager on every truck.', y:'A health and safety law adds training and labor costs (EK 1.3.B.6).'}
+  ],
+  decide:{opts:['Enter now exactly as planned. The local food trend is strong enough.','Enter, but adjust: build a flexible seasonal menu, line up backup farms, and price for higher fuel costs.','Skip this market. There are too many threats.'], ans:1,
+   y:'The market is mixed: strong social and political support, but real cost and supply risks. Entering with adjustments matches the factors to the business model (EK 1.3.C.2).'},
+  career:{q:'Which job is most likely to grow in Pine Hollow because of these factors?', opts:['Certified food protection manager and trainer','Movie rental clerk','Coal delivery driver'], ans:0,
+   y:'The new legal rule creates demand for certified food safety managers. PESTEL factors decide which businesses are viable, and that decides which jobs exist (EK 1.3.B.7).'}
+ },
+ {id:'skydrop', name:'SkyDrop', type:'Drone delivery service', where:'Rural Wiregrass region, many homes 20+ miles from town',
+  desc:'A startup plans to fly prescriptions, hardware parts, and small packages from town to rural homes by drone. It needs costly equipment and licensed pilots.',
+  signals:[
+   {k:'P', v:'O', w:1, t:'The state offers tax credits to businesses that serve “healthcare deserts.”', y:'A political incentive (tax credit) for exactly the customers SkyDrop serves.'},
+   {k:'L', v:'O', w:1, t:'New federal rules allow approved operators to fly drones beyond the pilot’s line of sight.', y:'A legal change that makes long-distance rural delivery legal to operate (EK 1.3.B.6).'},
+   {k:'Ec',v:'T', w:-1, t:'Interest rates rise, making equipment loans more expensive.', y:'Interest rates are economic and raise the cost of financing the drones.'},
+   {k:'S', v:'O', w:2, t:'The region’s population is aging, and many older residents no longer drive long distances.', y:'Demographics create a large group of customers who need delivery (EK 1.3.B.3).'},
+   {k:'T', v:'O', w:2, t:'Battery advances double drone flight range.', y:'Technology now supports the distribution system the business depends on (EK 1.3.B.4).'},
+   {k:'En',v:'B', w:0, t:'Forecasters expect an above-average hurricane season.', y:'Storms ground flights (threat), but drones can reach cut-off homes after a storm (opportunity), so it is both.'}
+  ],
+  decide:{opts:['Skip this market. Drones are too new.','Hold off a year and wait for more information.','Enter the market: most factors line up with the business model. Plan for financing costs and storm downtime.'], ans:2,
+   y:'Political, legal, social, and technological factors all favor SkyDrop. When PESTEL factors align with the business model, a business is more likely to enter (EK 1.3.C.2).'},
+  career:{q:'Which job could be reduced in this market as drone delivery grows?', opts:['Licensed drone pilot','Rural route delivery driver','Battery engineer'], ans:1,
+   y:'Changes in PESTEL factors can shift job availability in an existing market (EK 1.3.B.8). Drone delivery competes with driving routes, while it creates pilot and engineering jobs.'}
+ },
+ {id:'rethread', name:'ReThread', type:'Teen resale clothing pop-up', where:'Lakeview Mall in a mid-size city',
+  desc:'A student team wants to open a resale clothing shop inside the mall, buying gently used brand-name clothes from teens and reselling them. The mall lease is $3,200 a month.',
+  signals:[
+   {k:'S', v:'O', w:1, t:'Secondhand fashion is trending among teens on social media.', y:'A lifestyle trend among target customers (EK 1.3.A.4).'},
+   {k:'Ec',v:'B', w:0, t:'City unemployment rises to 8% and families cut back on spending.', y:'Overall spending drops (threat), but some businesses thrive in a weak economy by meeting customer needs for lower prices (EK 1.3.B.2), so it is both.'},
+   {k:'T', v:'T', w:-2, t:'National resale apps now offer free shipping and same-day listing from a phone.', y:'Technology gives rivals a cheaper way to reach the same customers without paying for a store.'},
+   {k:'En',v:'O', w:1, t:'More shoppers say they want to keep clothing out of landfills.', y:'Consumer environmental perspectives favor resale (EK 1.3.A.6, 1.3.B.5).'},
+   {k:'L', v:'T', w:-1, t:'A new consumer-protection law requires resellers to verify that brand-name items are authentic.', y:'A legal requirement that raises operating costs (EK 1.3.B.6).'},
+   {k:'P', v:'T', w:-1, t:'The city adds a 2% sales tax on retail purchases to fund a new stadium.', y:'A tax is a political factor that can limit spending at retail stores (EK 1.3.B.1).'}
+  ],
+  decide:{opts:['Sign the mall lease now. The trend is hot.','Hold off on the mall lease. Test a lower-cost model first, such as pop-up events or an online shop.','Enter the mall and add a second location next year.'], ans:1,
+   y:'The demand is real, but technology and legal costs make a $3,200-a-month store risky. Testing a cheaper model protects the idea while gathering evidence (EK 1.3.C.1).'},
+  career:{q:'Which job opportunity grows because of these factors?', opts:['Mall security guard','Authentication specialist for resale goods','Print newspaper reporter'], ans:1,
+   y:'The new authenticity law creates demand for people who can verify brand-name goods (EK 1.3.B.7).'}
+ }
+];
+
+const LEARN_MCQ = [
+ MCQ('A city council approves a tax break for businesses that install solar panels. Which PESTEL factor is this?', ['Legal','Environmental','Political','Economic'], 2, 'Taxes and subsidies are political factors (EK 1.3.A.2). It is related to the environment, but the force acting on the business is government policy.'),
+ MCQ('A farm-to-table restaurant is most likely to enter a market where:', ['Many customers prioritize locally grown food','High-speed internet is the cheapest in the state','Unemployment is rising faster than anywhere else','Few farms operate nearby'], 0, 'Businesses enter markets where PESTEL factors align with their business model, including potential customers (EK 1.3.C.2).')
+];
+
+const BUILD = {};
+BUILD.learn = el => {
+  el.innerHTML = `
+  ${plug('Topic 1.3','LO 1.3.A, 1.3.B, 1.3.C','2 class periods','Project 1, Task 3, Days 1–2','learn')}
+  <div class="section"><div class="section-head"><div class="label">Level 1</div><h2>Meet the six forces</h2>
+    <p class="lede muted">Every business sits inside forces it cannot control. Analysts scan all six before deciding if a market is worth entering. Read each card, then open “How it changes viability.”</p></div>
+    <div class="forces">${F.map(f=>`<article class="force c-${f.k}"><h3><span class="dotf b-${f.k}">${f.l}</span>${f.name}</h3><p>${f.def}</p><p class="ex"><b>Examples:</b> ${f.ex} <span class="mono">(EK ${f.ek})</span></p><button class="linkbtn" type="button" aria-expanded="false">How it changes viability</button><p class="why" hidden>${f.why}</p></article>`).join('')}</div>
+    <p class="muted" style="font-size:.9rem"><b>Watch the twin E’s.</b> Economic is about money moving through the economy. Environmental is about nature, resources, and how customers feel about the planet. <b>Political vs. legal:</b> political is policy direction (taxes, subsidies, bans, trade); legal is the specific law or regulation a business must follow.</p>
+  </div>
+  <div class="section"><div class="section-head"><div class="label">Level 2</div><h2>Signal Sort</h2>
+    <p class="lede muted">Twelve headlines just hit the radar. Tag each one with the right factor.</p></div><div class="deck" id="d-sort"></div></div>
+  <div class="section"><div class="section-head"><div class="label">Level 3</div><h2>Three markets, three calls</h2>
+    <p class="lede muted">Pick a business. For each signal, name the factor and decide whether it is an opportunity, a threat, or both. Watch the attractiveness meter move, then make the market-entry call and spot the career effect.</p></div>
+    <div class="biz-pick" id="bizpick">${BIZ.map(b=>`<button class="biz" type="button" data-b="${b.id}" aria-pressed="false"><span class="nm">${b.name}</span><span class="muted" style="font-size:.88rem">${b.type}</span><span class="st" data-st="${b.id}">Not started</span></button>`).join('')}</div>
+    <div id="bizstage"></div></div>
+  <div class="section"><div class="section-head"><div class="label">Exit check</div><h2>Topic 1.3 quick check</h2></div><div class="deck" id="d-learnq"></div></div>`;
+  el.querySelectorAll('.linkbtn').forEach(b=>b.onclick=()=>{const w=b.nextElementSibling; w.hidden=!w.hidden; b.setAttribute('aria-expanded', String(!w.hidden));});
+  Deck($('#d-sort',el), {unit:'Headline', shuffle:true, items:SIGNALS.map(s=>({prompt:esc(s.t), parts:[PF(s.k)], why:s.w}))});
+  Deck($('#d-learnq',el), {unit:'Question', lettered:true, items:LEARN_MCQ});
+  el.querySelectorAll('.biz').forEach(b=>b.onclick=()=>{ el.querySelectorAll('.biz').forEach(x=>x.setAttribute('aria-pressed', x===b?'true':'false')); stageBiz(BIZ.find(z=>z.id===b.dataset.b), el); });
+  el.querySelector('.biz').click();
+};
+function verdictFor(m){ return m>=3?['Favorable','pos']:m<=-2?['Risky','neg']:['Mixed','']; }
+function stageBiz(b, el){
+  const st = $('#bizstage',el);
+  st.innerHTML = `<div class="profile"><div style="display:grid;gap:8px"><div class="ctx">${esc(b.type)} · ${esc(b.where)}</div><h3>${b.name}</h3><p>${b.desc}</p></div>
+   <div class="meter" aria-live="polite"><div class="label">Market attractiveness</div><div class="meter-track"><div class="meter-needle" id="needle" style="left:50%"></div></div><div class="meter-scale"><span>Risky</span><span>Mixed</span><span>Favorable</span></div><div class="meter-read" id="mread">Scanning… 0 signals read</div></div></div>
+   <div class="deck" id="d-biz"></div>`;
+  let m=0, n=0;
+  const upd = () => { const pct = Math.max(4,Math.min(96, 50 + m*8)); $('#needle',st).style.left=pct+'%'; const [v,c]=verdictFor(m); $('#mread',st).innerHTML = `${n} of 6 signals read · <span class="${c}">${v}</span> (net ${m>0?'+':''}${m})`; };
+  const items = b.signals.map(s=>({ctx:b.name+' · signal', prompt:esc(s.t), parts:[PF(s.k), PI(s.v)], why:s.y, w:s.w}))
+    .concat([{ctx:b.name+' · market-entry call', prompt:'Based on all six signals, what should the founders do?', parts:[{q:'Your call', opts:b.decide.opts, ans:b.decide.ans, stack:true}], why:b.decide.y},
+             {ctx:b.name+' · career connection', prompt:esc(b.career.q), parts:[{q:'Choose one', opts:b.career.opts, ans:b.career.ans, stack:true}], why:b.career.y}]);
+  Deck($('#d-biz',st), {unit:'Step', items, onStart:()=>{m=0;n=0;upd();}, onReveal:it=>{ if('w' in it){ m+=it.w; n++; upd(); } },
+    onFinish:(s,t)=>{ const tag=$(`[data-st="${b.id}"]`); if(tag) tag.textContent=`Completed · ${s}/${t}`; }});
+}
+
+/* ---------- 2.3 RESEARCH ---------- */
+BUILD.research = el => {
+  const items = [
+   {k:'S', q:'How many people live in Cedar Bluff, and how fast is the population growing?', o:['Ask ten friends how big they think the town is','U.S. Census Bureau population estimates for Cedar Bluff','A food blogger’s post about Cedar Bluff'], a:1, y:'Government publications are reliable secondary sources for market size and demographics (EK 2.3.B.2).'},
+   {k:'Ec',q:'Are food prices in the region rising, and how fast?', o:['Bureau of Labor Statistics Consumer Price Index data for the region','A survey of 20 customers about whether they feel prices are high','One grocery store receipt from last week'], a:0, y:'Government price data shows the economic trend. A small survey measures feelings, not actual inflation.'},
+   {k:'L', q:'What permits and inspections does Cedar Bluff require for food trucks?', o:['A comment thread in a food-truck owners’ group','A national restaurant industry report','The Cedar Bluff city code and permitting office website'], a:2, y:'Laws and rules come straight from the government source. That is secondary research from a government publication (EK 2.3.B.2).'},
+   {k:'S', q:'Would college students in Cedar Bluff pay $12 for a farm-to-table bowl?', o:['A national report on average lunch prices','A survey and taste test with 50 students on the Cedar Bluff campus','The Census Bureau’s median household income for the county'], a:1, y:'Testing a hypothesis about target customers calls for primary research such as surveys or taste tests (EK 2.3.C.1). The other sources give useful context but cannot answer this question.'},
+   {k:'En',q:'How often does extreme summer heat cancel outdoor events in Cedar Bluff?', o:['Historical climate data for the area from a national weather agency','Asking the owner how hot it felt last summer','A travel website’s “best time to visit” page'], a:0, y:'Historical climate data is a reliable secondary source for an environmental factor.'},
+   {k:'P', q:'Is the state considering new taxes or subsidies for small food businesses?', o:['A rival food truck’s menu','A state legislature bill tracker and the regional Small Business Development Center','A celebrity chef’s podcast'], a:1, y:'Policy changes are tracked through government and business-support publications (EK 2.3.B.2).'},
+   {k:'T', q:'Do most Cedar Bluff households have reliable internet for mobile pre-ordering?', o:['Watching people at one coffee shop for an hour','A tech company’s ad saying “everyone is online”','A government broadband coverage map and published research on smartphone use'], a:2, y:'Published government and academic data on internet access answers a technological question cost-effectively (EK 2.3.B.3).'}
+  ];
+  el.innerHTML = `${plug('Topic 2.3','LO 2.3.B (and 2.3.C)','20–25 min','After students learn secondary vs. primary research','research')}
+   <div class="section"><div class="section-head"><div class="label">Research Desk</div><h2>Sprout & Spoon wants a second town</h2>
+   <p class="lede muted">The food truck is doing well in Pine Hollow and the owners are scouting Cedar Bluff. Businesses use secondary and primary research to learn about the market landscape, including the PESTEL factors (EK 2.3.B.1). For each research question, name the factor and choose the best source.</p></div>
+   <div class="deck" id="d-res"></div></div>
+   <div class="section"><div class="section-head"><div class="label">Exit check</div><h2>Topic 2.3 quick check</h2></div><div class="deck" id="d-resq"></div></div>`;
+  Deck($('#d-res',el), {unit:'Research question', items:items.map(i=>({prompt:esc(i.q), parts:[PF(i.k), {q:'Best source', opts:i.o, ans:i.a, stack:true}], why:i.y}))});
+  Deck($('#d-resq',el), {lettered:true, items:[
+   MCQ('A business wants to estimate the size of its market before spending money on surveys. Which approach is usually most cost-effective?', ['Interviewing hundreds of potential customers','Secondary-source research from government and commercial databases','Running a full test launch in three cities','Hiring a focus-group company'], 1, 'Businesses typically interpret secondary-source research first because it is more cost-effective than extensive primary research (EK 2.3.B.3).'),
+   MCQ('Which question is best answered with primary-source research?', ['What is the population of the county?','What was the regional inflation rate last year?','What permits does the city require?','Would our target customers pay $12 for our product?'], 3, 'Questions about your own target customers’ preferences are tested with primary research such as surveys (EK 2.3.C.1).')
+  ]});
+};
+
+/* ---------- 3.1 SAVING ---------- */
+BUILD.saving = el => {
+  const items = [
+   {k:'Ec', e:1, t:'Inflation rises to 6% while Maya’s savings account pays 0.5% interest.', y:'Inflation erodes the purchasing power of savings, and the expected loss can discourage saving (EK 3.1.B.2).'},
+   {k:'P',  e:0, t:'Congress expands a tax-advantaged account for education savings.', y:'Tax policy that lets people skip income tax on money saved for a purpose is a political incentive to save (EK 3.1.B.3).'},
+   {k:'L',  e:0, t:'Regulators require banks and credit unions to clearly disclose every account fee.', y:'Regulation of financial institutions protects consumers, which supports saving (EK 3.1.B.4).'},
+   {k:'Ec', e:1, t:'Maya’s employer cuts her hours during an economic downturn.', y:'Loss of income in a weak economy leaves less money after necessary expenses (EK 3.1.B.1).'},
+   {k:'T',  e:0, t:'Online banks offer high-yield savings accounts with no minimum deposit.', y:'Technology gives savers access to higher interest and lower barriers, which raises the reward for saving.'},
+   {k:'S',  e:1, t:'Maya’s friends keep posting weekend trips and new phones, and she feels pressure to keep up.', y:'Social pressure feeds instant gratification and lifestyle inflation, which make saving harder (EK 3.1.A.5).'}
+  ];
+  el.innerHTML = `${plug('Topic 3.1','LO 3.1.B, 3.1.C','20–30 min','When teaching why and how people save','saving')}
+   <div class="section"><div class="section-head"><div class="label">Purchasing power lab</div><h2>What will your savings really buy?</h2>
+   <p class="lede muted">Maya has saved $2,000 for college. Move the sliders to see how interest and inflation change what that money will buy in the future, measured in today’s dollars.</p></div>
+   <div class="grid2"><div style="display:grid;gap:12px">
+     <label class="field">Starting savings <output id="o-p"></output><input id="s-p" type="range" min="500" max="10000" step="100" value="2000"></label>
+     <label class="field">Interest rate (APY) <output id="o-r"></output><input id="s-r" type="range" min="0" max="6" step="0.25" value="0.5"></label>
+     <label class="field">Inflation rate <output id="o-i"></output><input id="s-i" type="range" min="0" max="9" step="0.25" value="3"></label>
+     <label class="field">Years <output id="o-n"></output><input id="s-n" type="range" min="1" max="15" step="1" value="5"></label>
+   </div><div style="display:grid;gap:10px;align-content:start"><div class="stats">
+     <div class="stat"><div class="v" id="v-nom"></div><div class="k">Balance in the account</div></div>
+     <div class="stat"><div class="v" id="v-real"></div><div class="k">What it buys in today’s dollars</div></div>
+     <div class="stat"><div class="v" id="v-chg"></div><div class="k">Change in purchasing power</div></div></div>
+     <p id="v-msg" style="font-size:.95rem"></p>
+     <p class="muted mono" style="font-size:.75rem">Balance = P × (1 + rate)<sup>years</sup>. Today’s dollars = balance ÷ (1 + inflation)<sup>years</sup>.</p></div></div></div>
+   <div class="section"><div class="section-head"><div class="label">Forces on Maya’s savings</div><h2>Factor and effect</h2><p class="lede muted">Name the factor, then decide whether it makes saving more attractive or harder.</p></div><div class="deck" id="d-sav"></div></div>
+   <div class="section"><div class="section-head"><div class="label">Exit check</div><h2>Topic 3.1 quick check</h2></div><div class="deck" id="d-savq"></div></div>`;
+  const money = v => '$'+Math.round(v).toLocaleString('en-US');
+  const calc = () => { const P=+$('#s-p',el).value, r=+$('#s-r',el).value/100, i=+$('#s-i',el).value/100, n=+$('#s-n',el).value;
+    $('#o-p',el).textContent=money(P); $('#o-r',el).textContent=(r*100).toFixed(2)+'%'; $('#o-i',el).textContent=(i*100).toFixed(2)+'%'; $('#o-n',el).textContent=n;
+    const nom=P*Math.pow(1+r,n), real=nom/Math.pow(1+i,n), ch=(real-P)/P*100;
+    $('#v-nom',el).textContent=money(nom); $('#v-real',el).textContent=money(real); const c=$('#v-chg',el); c.textContent=(ch>=0?'+':'')+ch.toFixed(1)+'%'; c.className='v '+(ch>=0?'pos':'neg');
+    $('#v-msg',el).innerHTML = ch<0 ? `Prices rise faster than the balance grows, so Maya’s money buys about <b>${money(P-real)}</b> less than it does today. That is inflation eroding purchasing power (EK 3.1.B.2).` : `The interest rate beats inflation, so the savings gain real purchasing power. Higher-interest vehicles often come with tradeoffs such as minimum balances (EK 3.1.C.3).`; };
+  el.querySelectorAll('input[type=range]').forEach(s=>s.oninput=calc); calc();
+  Deck($('#d-sav',el), {unit:'Force', shuffle:true, items:items.map(i=>({ctx:'Maya’s savings plan', prompt:esc(i.t), parts:[PF(i.k), {q:'Effect on saving', opts:['Makes saving more attractive or easier','Makes saving harder or less rewarding'], ans:i.e}], why:i.y}))});
+  Deck($('#d-savq',el), {lettered:true, items:[
+   MCQ('Your savings account pays 1% interest while inflation is 4%. What is happening to the purchasing power of your savings?', ['It is falling, because prices rise faster than your balance grows','It is rising, because your balance is growing','It stays the same, because interest cancels out inflation','It stays the same, because the account is federally insured'], 0, 'Inflation above your interest rate means your money buys fewer goods and services over time (EK 3.1.B.2). Federal insurance protects the deposit, not its purchasing power.'),
+   MCQ('A government lets workers skip income tax on money they put into a retirement account. This is an example of:', ['A legal factor regulating bank safety','An economic factor caused by inflation','A political factor that gives people an incentive to save','A social factor driven by lifestyle trends'], 2, 'Tax policy that rewards saving is a political factor (EK 3.1.B.3).')
+  ]});
+};
+
+/* ---------- 3.5 INVESTING ---------- */
+BUILD.investing = el => {
+  const ev = [
+   {k:'P', d:+3.5, t:'Lawmakers extend a tax credit for homeowners who install solar panels.', y:'A political subsidy raises expected demand and profits, so investor demand rises.'},
+   {k:'Ec',d:-2.0, t:'Interest rates rise, making it more expensive for homeowners to finance panels.', y:'Higher interest rates are economic and can lower demand for big financed purchases, so expected profits fall.'},
+   {k:'T', d:+4.0, t:'Wiregrass Solar licenses a new panel design that is 20% more efficient.', y:'Technology improves the product and future performance, so the stock rises.'},
+   {k:'En',d:-1.5, t:'A hailstorm damages panels stored in the company’s warehouse.', y:'A natural disaster destroys inventory and raises costs, so the stock falls.'},
+   {k:'S', d:+2.5, t:'A regional survey finds homeowners now rank energy independence as a top priority.', y:'A social trend boosts expected demand, so the stock rises.'},
+   {k:'L', d:-0.5, t:'A new state safety rule adds inspection costs to every installation.', y:'A legal rule raises operating costs, so the stock dips slightly.'}
+  ];
+  el.innerHTML = `${plug('Topic 3.5','LO 3.5.C (EK 3.5.C.4–3.5.C.5)','25 min','When teaching stocks, capital gains, and rate of return','investing')}
+   <div class="section"><div class="section-head"><div class="label">Market Pulse</div><h2>One year holding Wiregrass Solar Co.</h2>
+   <p class="lede muted">You buy 10 shares of a fictional company, Wiregrass Solar Co., at <b>$40.00</b> a share. Over the year, six news events hit. Stock prices change in response to business performance, investor demand, and PESTEL forces (EK 3.5.C.4). Name the factor and predict the move.</p></div>
+   <div class="grid2"><div class="stats"><div class="stat"><div class="v" id="px">$40.00</div><div class="k">Share price</div></div><div class="stat"><div class="v" id="pv">$400.00</div><div class="k">Value of 10 shares</div></div><div class="stat"><div class="v" id="pd">$0.00</div><div class="k">Dividends received per share</div></div></div>
+   <div class="tbl-wrap"><svg id="chart" viewBox="0 0 420 160" width="100%" role="img" aria-label="Share price over the year"></svg></div></div>
+   <div class="deck" id="d-inv"></div></div>
+   <div class="section"><div class="section-head"><div class="label">Exit check</div><h2>Topic 3.5 quick check</h2></div><div class="deck" id="d-invq"></div></div>`;
+  let hist=[40];
+  const draw = () => { const W=420,H=160,l=40,r=12,t=12,b=26, lo=34, hi=50; const x=i=>l+(W-l-r)*i/6, y=v=>t+(H-t-b)*(hi-v)/(hi-lo);
+    let s=''; [36,40,44,48].forEach(v=>{ s+=`<line x1="${l}" x2="${W-r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${l-6}" y="${y(v)+4}" text-anchor="end">$${v}</text>`; });
+    for(let i=0;i<=6;i++) s+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle">${i===0?'Buy':'E'+i}</text>`;
+    s+=`<polyline fill="none" stroke="var(--gold)" stroke-width="2.5" points="${hist.map((v,i)=>x(i)+','+y(v)).join(' ')}"/>`;
+    const lv=hist[hist.length-1]; s+=`<circle cx="${x(hist.length-1)}" cy="${y(lv)}" r="4.5" fill="var(--gold)"/>`;
+    $('#chart',el).innerHTML=s; $('#px',el).textContent='$'+lv.toFixed(2); $('#pv',el).textContent='$'+(lv*10).toFixed(2); $('#pd',el).textContent='$'+(Math.min(hist.length-1,6)*0.2).toFixed(2); };
+  const items = ev.map((e,i)=>({ctx:`Event ${i+1} of 6`, prompt:esc(e.t), parts:[PF(e.k), {q:'The share price will most likely…', opts:['Rise','Fall'], ans:e.d>0?0:1}], why:`${e.y} <span class="mono">Price ${e.d>0?'+':'–'}$${Math.abs(e.d).toFixed(2)}.</span>`, d:e.d}))
+   .concat([{ctx:'Year-end', prompt:'You sell at <b>$46.00</b>. During the year you received <b>$1.20</b> per share in dividends. What was your annual rate of return?', parts:[{q:'Rate of return = (income + capital gain) ÷ price paid  (EK 3.5.C.5)', opts:['3%','15%','18%','115%'], ans:2}], why:'Capital gain = $46.00 – $40.00 = $6.00. Total gained = $6.00 + $1.20 = $7.20. $7.20 ÷ $40.00 = 0.18, or 18%.'}]);
+  Deck($('#d-inv',el), {unit:'Step', items, onStart:()=>{hist=[40];draw();}, onReveal:it=>{ if('d' in it){ hist.push(+(hist[hist.length-1]+it.d).toFixed(2)); draw(); } }});
+  Deck($('#d-invq',el), {lettered:true, items:[
+   MCQ('You buy a share for $40, receive $1.20 in dividends, and sell it for $46. What is your annual rate of return?', ['3%','15%','115%','18%'], 3, '($6.00 capital gain + $1.20 dividends) ÷ $40.00 = 18% (EK 3.5.C.5).'),
+   MCQ('A new tariff raises a manufacturer’s costs, and investors expect its profits to fall. What is the most likely short-term effect on its stock price?', ['The price rises because tariffs protect the company','The price falls as investor demand drops','The price stays the same because tariffs only affect consumers','The company is required to double its dividend'], 1, 'Prices of financial assets respond to PESTEL forces and expected business performance (EK 3.5.C.4, 3.5.C.6).')
+  ]});
+};
+
+/* ---------- 3.6 PLANNING ---------- */
+BUILD.planning = el => {
+  const base={rev:20000,cogs:7000,opx:9000};
+  const ev=[
+   {k:'P', t:'A tariff on imported aluminum raises the price of food containers.', r:0, c:600, o:0},
+   {k:'L', t:'The city raises the minimum wage for food-service workers.', r:0, c:0, o:800},
+   {k:'En',t:'A July heat wave cancels three outdoor events.', r:-2000, c:-700, o:0},
+   {k:'S', t:'A new weekend farmers market draws crowds who love local food.', r:1500, c:525, o:0},
+   {k:'T', t:'Sprout & Spoon adds an online pre-order app (monthly fee $150).', r:1000, c:0, o:150},
+   {k:'Ec',t:'Layoffs at a nearby plant reduce local lunch spending.', r:-1200, c:-420, o:0}
+  ];
+  el.innerHTML = `${plug('Topic 3.6','LO 3.6.B, 3.6.C (EK 3.6.B.3, 3.6.B.6, 3.6.C.1)','25–30 min','When teaching projected budgets and profit margins','planning')}
+   <div class="section"><div class="section-head"><div class="label">Budget Storm</div><h2>Sprout & Spoon’s July budget meets reality</h2>
+   <p class="lede muted">Incomes and expenses go up and down because of PESTEL forces, so planning matters (EK 3.6.C.1). Turn on each event to see how it changes July’s numbers compared with the projection.</p></div>
+   <div class="events" id="evs">${ev.map((e,i)=>`<div class="event" data-i="${i}">${fChip(e.k)}<p>${esc(e.t)}</p><p class="fx">${[e.r?`Revenue ${e.r>0?'+':'–'}$${Math.abs(e.r).toLocaleString()}`:'',e.c?`COGS ${e.c>0?'+':'–'}$${Math.abs(e.c).toLocaleString()}`:'',e.o?`Operating exp. +$${e.o.toLocaleString()}`:''].filter(Boolean).join(' · ')}</p><button class="btn ghost" type="button" aria-pressed="false">Apply event</button></div>`).join('')}</div>
+   <div class="actions"><button class="btn ghost" type="button" id="all">Apply all six</button><button class="btn ghost" type="button" id="none">Reset to projection</button></div>
+   <div class="tbl-wrap"><table><thead><tr><th>July</th><th class="num">Projected</th><th class="num">With events</th><th class="num">% change</th></tr></thead><tbody id="bt"></tbody></table></div>
+   <p class="muted mono" style="font-size:.75rem">Operating profit = revenue – cost of goods sold – operating expenses. Operating profit margin = operating profit ÷ revenue. Percent change = [(current – initial) ÷ initial] × 100.</p></div>
+   <div class="section"><div class="section-head"><div class="label">Plan for it</div><h2>Make the planning calls</h2></div><div class="deck" id="d-plan"></div></div>
+   <div class="section"><div class="section-head"><div class="label">Exit check</div><h2>Topic 3.6 quick check</h2></div><div class="deck" id="d-planq"></div></div>`;
+  const on=ev.map(()=>false);
+  const fm=v=>(v<0?'–$':'$')+Math.abs(Math.round(v)).toLocaleString('en-US');
+  const pc=(a,b)=>{ if(a===b) return '0.0%'; const v=(b-a)/a*100; return `<span class="${v>=0?'pos':'neg'}">${v>0?'+':''}${v.toFixed(1)}%</span>`; };
+  const calc=()=>{ let rev=base.rev,c=base.cogs,o=base.opx; ev.forEach((e,i)=>{ if(on[i]){rev+=e.r;c+=e.c;o+=e.o;} });
+    const op0=base.rev-base.cogs-base.opx, op=rev-c-o, m0=op0/base.rev*100, m=op/rev*100;
+    $('#bt',el).innerHTML=[['Revenue',base.rev,rev],['Cost of goods sold',base.cogs,c],['Operating expenses',base.opx,o],['Operating profit',op0,op]].map(([k,a,b])=>`<tr><td>${k}</td><td class="num">${fm(a)}</td><td class="num">${fm(b)}</td><td class="num">${pc(a,b)}</td></tr>`).join('')+
+      `<tr><td><b>Operating profit margin</b></td><td class="num">${m0.toFixed(1)}%</td><td class="num"><b>${m.toFixed(1)}%</b></td><td class="num muted">${(m-m0>0?'+':'')+(m-m0).toFixed(1)} pts</td></tr>`;
+    el.querySelectorAll('.event').forEach((d,i)=>{ d.classList.toggle('on',on[i]); const b=d.querySelector('button'); b.setAttribute('aria-pressed',String(on[i])); b.textContent=on[i]?'Applied ✓':'Apply event'; }); };
+  el.querySelectorAll('.event button').forEach((b,i)=>b.onclick=()=>{on[i]=!on[i];calc();});
+  $('#all',el).onclick=()=>{on.fill(true);calc();}; $('#none',el).onclick=()=>{on.fill(false);calc();}; calc();
+  Deck($('#d-plan',el), {unit:'Decision', items:[
+   {ctx:'Political · tariff', prompt:'The tariff adds $600 a month to container costs. What is the best planning response?', parts:[{q:'Choose one', stack:true, opts:['Ignore it and hope the tariff ends soon','Compare a local compostable-container supplier, and build a small price change into the August budget','Stop serving takeout'], ans:1}], why:'Good planning updates the projected budget with the new cost and looks for a substitute supplier (EK 3.6.C.1).'},
+   {ctx:'Environmental · heat wave', prompt:'Heat cancels outdoor events every summer. How should next July’s projection change?', parts:[{q:'Choose one', stack:true, opts:['Project lower event revenue for July and book indoor catering to fill the gap','Keep the same projection, since last year was bad luck','Close the truck every summer'], ans:0}], why:'Projections should reflect known patterns, and a backup revenue source reduces the risk (EK 3.6.C.1).'},
+   {ctx:'All six events', prompt:'With all six events applied, operating profit falls from $4,000 to $2,345. What is the percent change?', parts:[{q:'Percent change = [(current – initial) ÷ initial] × 100', opts:['–58.6%','–41.4%','–16.6%','+41.4%'], ans:1}], why:'($2,345 – $4,000) ÷ $4,000 = –0.414, or –41.4% (EK 3.6.B.6). Try “Apply all six” above to check it.'}
+  ]});
+  Deck($('#d-planq',el), {lettered:true, items:[
+   MCQ('Projected July revenue was $20,000. Actual revenue was $19,300. What is the percent change?', ['–0.7%','+3.5%','–3.5%','–35.0%'], 2, '($19,300 – $20,000) ÷ $20,000 = –0.035, or –3.5% (EK 3.6.B.6).'),
+   MCQ('Why do businesses build projected budgets even though PESTEL forces make the future uncertain?', ['Planning helps them prepare for changes and still meet financial goals','A budget guarantees the business will not lose money','Antitrust laws require every business to publish a budget','Budgets remove the need to watch PESTEL forces'], 0, 'Incomes and expenses fluctuate with PESTEL forces; thoughtful planning helps businesses and consumers meet financial goals (EK 3.6.C.1).')
+  ]});
+};
+
+/* ---------- 4.4 SWOT ---------- */
+BUILD.swot = el => {
+  const S=['Strength','Weakness','Opportunity','Threat'];
+  const it=[
+   ['Owns a patent on a quiet-propeller design that neighbors appreciate',0,'Intellectual property is an internal capability, so it is a strength (EK 4.4.D.1).'],
+   ['Only two certified drone pilots on staff',1,'Not enough skilled employees is an internal weakness (EK 4.4.C.4).'],
+   ['<span class="chip c-T">Technological</span> Battery advances double drone flight range',2,'A PESTEL factor outside SkyDrop’s control that helps it: opportunity (EK 4.4.C.5).'],
+   ['<span class="chip c-Ec">Economic</span> Rising interest rates make new equipment loans more expensive',3,'Rising input costs from outside the business are a threat (EK 4.4.C.6).'],
+   ['Strong reputation with three rural hospitals',0,'Reputation is an intangible internal asset, so it is a strength (EK 4.4.D.1).'],
+   ['Outdated scheduling software causes missed deliveries',1,'Outdated technology inside the company is a weakness, even though it involves technology (EK 4.4.C.4).'],
+   ['<span class="chip c-P">Political</span> A state tax credit rewards serving healthcare deserts',2,'A favorable government change outside the business is an opportunity (EK 4.4.C.5).'],
+   ['<span class="chip c-En">Environmental</span> An above-average hurricane season is forecast',3,'Natural disasters are external threats (EK 4.4.C.6).'],
+   ['A national retailer announces its own drone delivery network',3,'Competition is external. Rivalry comes from Porter’s Five Forces rather than PESTEL, but it still counts as a threat (EK 4.4.D.2).']
+  ];
+  el.innerHTML = `${plug('Topic 4.4','LO 4.4.C, 4.4.D (EK 4.4.D.2)','20 min','When teaching SWOT analysis','swot')}
+   <div class="section"><div class="section-head"><div class="label">From PESTEL to SWOT</div><h2>SkyDrop, one year later</h2>
+   <p class="lede muted">SWOT looks inside the business (strengths and weaknesses) and outside it (opportunities and threats). PESTEL factors are external, so they always land in O or T (EK 4.4.D.2). Sort each item.</p></div>
+   <div class="deck" id="d-swot"></div></div>
+   <div class="section"><div class="section-head"><div class="label">Exit check</div><h2>Topic 4.4 quick check</h2></div><div class="deck" id="d-swotq"></div></div>`;
+  Deck($('#d-swot',el), {unit:'Item', shuffle:true, items:it.map(([t,a,y])=>({ctx:'SkyDrop SWOT', prompt:t, parts:[{q:'Where does it go?', opts:S, ans:a}], why:y}))});
+  Deck($('#d-swotq',el), {lettered:true, items:[
+   MCQ('In a SWOT analysis, where do PESTEL factors belong?', ['Strengths and weaknesses','Opportunities and threats','Threats only','Strengths only'], 1, 'PESTEL factors are external, so they are evaluated as opportunities or threats (EK 4.4.D.2).'),
+   MCQ('Which of these is a weakness rather than a threat?', ['Rising input costs','An unfavorable new government regulation','A natural disaster in the region','Outdated technology inside the company'], 3, 'Weaknesses are internal disadvantages such as outdated technology (EK 4.4.C.4). The other three are external threats (EK 4.4.C.6).')
+  ]});
+};
+
+/* ---------- UNIT 5 ADVISOR ---------- */
+BUILD.advisor = el => {
+  const ev=[
+   {k:'T', t:'Marcus’s plant announces his assembly line will be automated within two years.', o:['Spend his savings now before the job ends','Grow the emergency fund toward six months of expenses and use the employer’s training benefit to retrain for robotics maintenance','Move all savings into one high-risk stock to make up the future lost income'], a:1, y:'Automation threatens income. An emergency fund and retraining reduce the risk of income loss.'},
+   {k:'Ec',t:'Inflation runs at 5% while the household’s savings account pays 0.5%.', o:['Keep the emergency fund in a high-yield savings account and invest long-term retirement money in diversified investments that match their risk tolerance','Keep every dollar in the 0.5% account because it is insured','Put the emergency fund in stocks'], a:0, y:'Inflation erodes low-interest savings. Long-term money can take more risk; emergency money must stay safe and easy to reach.'},
+   {k:'Ec',t:'Mortgage rates jump from 6% to 7.5% just before they planned to buy a house.', o:['Buy immediately before rates go higher','Give up on owning a home','Reconsider the timing or price range, and keep growing the down payment'], a:2, y:'Higher interest rates raise monthly payments. Adjusting timing, price, or down payment keeps the housing goal realistic.'},
+   {k:'P', t:'The state expands its tax deduction for contributions to its 529 college savings plan.', o:['Increase monthly contributions to Ella’s 529 plan','Ignore it, since college is four years away','Withdraw retirement savings to pay tuition early'], a:0, y:'A political incentive lowers the cost of saving for Ella’s education.'},
+   {k:'En',t:'After a severe hurricane season, homeowner’s insurance premiums in their area rise 30%.', o:['Skip insurance on the new home to save money','Build the higher insurance cost into the housing budget and compare quotes','Buy the most expensive home they qualify for'], a:1, y:'Environmental risk shows up as higher insurance costs, which belong in the housing budget.'},
+   {k:'S', t:'An aging population creates a nursing shortage, and Dana’s hospital offers overtime and a sign-on bonus.', o:['Upgrade to a luxury car with the extra pay','Direct the extra income toward the emergency fund, college, and down-payment goals','Quit to wait for an even bigger bonus'], a:1, y:'A demographic trend raises Dana’s earning potential. Sending the extra income to goals avoids lifestyle inflation.'}
+  ];
+  el.innerHTML = `${plug('Unit 5','Financial Advisor Project','25–30 min','As a warm-up before students write household recommendations','advisor')}
+   <div class="section"><div class="section-head"><div class="label">Advisor’s Radar</div><h2>The Brooks household</h2>
+   <p class="lede muted">Unit 5 asks students to connect the PESTEL factors from Unit 1 to a household’s finances. You are the financial advisor.</p></div>
+   <div class="stats"><div class="stat"><div class="v">2 earners</div><div class="k">Dana, a nurse; Marcus, a manufacturing technician</div></div><div class="stat"><div class="v">4 years</div><div class="k">Until daughter Ella starts college</div></div><div class="stat"><div class="v">3 years</div><div class="k">Target to buy a first home</div></div><div class="stat"><div class="v">Moderate</div><div class="k">Risk tolerance</div></div></div>
+   <p class="muted">Six forces hit the household this year. Name each factor, then choose the recommendation that best fits their goals, time frame, and risk tolerance.</p>
+   <div class="deck" id="d-adv"></div></div>
+   <div class="section"><div class="section-head"><div class="label">Exit check</div><h2>Unit 5 quick check</h2></div><div class="deck" id="d-advq"></div></div>`;
+  Deck($('#d-adv',el), {unit:'Force', items:ev.map(e=>({ctx:'Brooks household', prompt:esc(e.t), parts:[PF(e.k), {q:'Your recommendation', opts:e.o, ans:e.a, stack:true}], why:e.y}))});
+  Deck($('#d-advq',el), {lettered:true, items:[
+   MCQ('A household’s main earner works in a job likely to be automated. Which recommendation best addresses this technological factor?', ['Build an emergency fund and invest in retraining','Move all savings into riskier investments','Cancel health insurance to free up cash','Buy a larger home before the job ends'], 0, 'Planning for possible income loss means a larger safety net and building new skills.'),
+   MCQ('Mortgage rates rise sharply just before a family planned to buy a home. Which factor is this, and what is a sound response?', ['Political: buy immediately','Social: ignore the change','Economic: reconsider timing or price range and grow the down payment','Legal: switch to a different bank'], 2, 'Interest rates are an economic factor (EK 1.3.A.3). The family should adjust the plan to fit its budget.')
+  ]});
+};
+
+/* ---------- PRACTICE + BUSINESS CANVAS PROJECT ---------- */
+const POOL = [
+ ['Wiregrass Bike Rentals','P','O','The state tourism board funds a new 30-mile rail-trail through town.','Public funding for a trail is a political decision that brings riders.'],
+ ['Wiregrass Bike Rentals','Ec','O','Gas prices spike, and more residents look for cheaper ways to get around.','Higher costs of living push some customers toward cheaper transportation.'],
+ ['Wiregrass Bike Rentals','S','O','More adults are setting weekly fitness goals and tracking their rides.','A lifestyle trend that grows the customer base.'],
+ ['Wiregrass Bike Rentals','T','T','App-based e-scooters arrive downtown.','A new technology gives customers a competing option.'],
+ ['Wiregrass Bike Rentals','En','T','Record summer heat keeps visitors indoors in July and August.','Climate limits when customers will ride.'],
+ ['Wiregrass Bike Rentals','L','T','A new liability law requires shops to provide a helmet with every rental.','A safety law adds equipment costs.'],
+ ['Sweet Peach Bakery','P','T','The city council bans plastic clamshell containers starting in January.','In the CED, bans are political (EK 1.3.A.2). New containers will cost more.'],
+ ['Sweet Peach Bakery','Ec','T','Inflation pushes egg and butter prices up 15%.','Inflation raises input costs.'],
+ ['Sweet Peach Bakery','S','B','Gluten-free diets grow in popularity among local families.','A new product opportunity, but customers may also skip regular baked goods. Both.'],
+ ['Sweet Peach Bakery','T','O','A new point-of-sale system lets customers pre-order and pay by text.','Technology improves sales and communication with customers.'],
+ ['Sweet Peach Bakery','En','T','Drought raises the price of locally grown peaches.','Access to resources is environmental, and this one raises costs.'],
+ ['Sweet Peach Bakery','L','T','A new rule requires allergen labels on all packaged baked goods.','A consumer protection and safety rule adds labeling costs.'],
+ ['Byte Tutors (online tutoring)','P','O','A state grant pays for free tutoring for students below grade level.','Government funding creates paying contracts.'],
+ ['Byte Tutors (online tutoring)','Ec','T','Household incomes fall during a recession, and families cut extras.','Lower income reduces spending on optional services.'],
+ ['Byte Tutors (online tutoring)','S','O','Parents report rising concern about math skills.','Changing consumer needs create demand.'],
+ ['Byte Tutors (online tutoring)','T','B','Free AI homework helpers become widely available.','A substitute that competes (threat) and a tool the business could use (opportunity). Both.'],
+ ['Byte Tutors (online tutoring)','En','O','Storm-related school closures increase demand for remote learning.','Natural disasters disrupt in-person school, which helps an online service.'],
+ ['Byte Tutors (online tutoring)','L','T','A new student-privacy law limits what data tutoring apps may collect.','A legal rule that raises compliance costs and limits some features.'],
+ ['Pine Hollow Pet Grooming','P','O','The county cuts license taxes for home-based businesses.','Lower taxes reduce startup costs (EK 1.3.B.1).'],
+ ['Pine Hollow Pet Grooming','Ec','O','Pet spending stays strong even as other spending slows.','An economic pattern that supports demand.'],
+ ['Pine Hollow Pet Grooming','S','O','More young adults are adopting pets.','A lifestyle trend that grows the market.'],
+ ['Pine Hollow Pet Grooming','T','T','Self-service dog-wash stations with card readers open at grocery stores.','A technology-driven substitute for full grooming.'],
+ ['Pine Hollow Pet Grooming','En','B','Pet owners prefer groomers who use biodegradable, eco-friendly products.','Consumer environmental views (EK 1.3.A.6) reward groomers who switch, but the products cost more. Both.'],
+ ['Pine Hollow Pet Grooming','L','T','The state now requires a licensing exam for all professional groomers.','A legal rule that adds time and cost.']
+];
+const EXAMPLE = {name:'Sprout & Spoon', product:'Seasonal farm-to-table bowls from a food truck', customer:'College students and young professionals who value local food', market:'Pine Hollow (small town near a community college)',
+ rows:{P:[['County permit discount for vendors who buy local','County commissioners’ meeting minutes','O','3','Register as a local-sourcing vendor',false],['Possible sales tax increase on prepared food','State legislature bill tracker','T','1','Watch the bill; price menu to absorb a small increase',false]],
+  Ec:[['Fuel prices up 18% this year','Regional energy price data','T','2','Plan routes to cut idle time; build fuel into pricing',true],['Student income is limited','College financial aid office data','T','2','Offer a $9 student bowl',false]],
+  S:[['“Eat local” trend among students','Campus survey of 40 students (primary)','O','3','Partner with campus clubs',false],['Growing population of young families','Census Bureau estimates','O','2','Add kid-size bowls',false]],
+  T:[['Delivery apps charge 25% commission','Delivery app merchant terms','B','2','Use own pre-order app; limit delivery to peak hours',false],['Social media marketing is low-cost','Small Business Development Center guide','O','2','Post daily menu and location',false]],
+  En:[['Late frost damaged peach and strawberry crops','State agriculture department crop report','T','2','Line up two backup farms',true],['Customers prefer compostable packaging','Campus survey (primary)','O','1','Switch to compostable bowls',false]],
+  L:[['Certified food protection manager required','State health department rules','T','2','Both owners complete certification',false],['Food truck parking ordinance limits locations','City code','T','2','Apply for a campus vending spot',false]]},
+ sc:'Fuel and crop shortages could stop daily service. Backup farms and a fuel budget reduce the risk.',
+ reflect:'The idea is viable but not risk-free. Social and political forces are strong opportunities, and the most serious threats (fuel, frost, certification) can be managed with planning.',
+ career:'Creates: two part-time prep cook jobs. Reduced: delivery app drivers, if most customers pre-order directly.', revise:''};
+
+BUILD.project = el => {
+  el.innerHTML = `${plug('Topic 1.3 · Business Canvas Project','Market – PESTEL analysis (Unit 1 deliverable)','1–2 class periods','Project 1, Task 3, Day 3; revisit in Tasks 7 and 8','project')}
+   <div class="steps-nav"><a class="btn ghost" href="#step-practice" style="text-decoration:none">Step 1 · Practice</a><a class="btn ghost" href="#step-bcp" style="text-decoration:none">Step 2 · Your Business Canvas Project PESTEL</a></div>
+   <div class="section" id="step-practice"><div class="section-head"><div class="label">Step 1 · Rapid Radar</div><h2>Practice round</h2>
+   <p class="lede muted">Eight random signals from four new businesses. Each round draws a new set, so practice as many times as you like. Aim for 13 of 16 before you move on.</p></div><div class="deck" id="d-prac"></div></div>
+   <div class="section" id="step-bcp"><div class="section-head"><div class="label">Step 2 · Business Canvas Project</div><h2>PESTEL analysis for your business idea</h2>
+   <p class="lede muted">Find at least two forces for each factor that could affect your proposed market. Rate each one, decide how you will respond, and the radar will summarize how attractive the market looks. This analysis goes in the Market component of your Business Canvas Project.</p></div>
+   <div class="actions"><button class="btn ghost" type="button" id="b-ex">Load example (Sprout & Spoon)</button><button class="btn ghost" type="button" id="b-clear">Clear my work</button><button class="btn" type="button" id="b-copy">Copy my PESTEL analysis</button><span class="toast" id="b-toast" aria-live="polite"></span></div>
+   <div id="b-extag"></div>
+   <div class="grid2">
+     <label class="field">Business idea name<input id="b-name"></label>
+     <label class="field">Product (good or service)<input id="b-product"></label>
+     <label class="field">Target customer<input id="b-customer"></label>
+     <label class="field">Market or location<input id="b-market"></label>
+   </div>
+   <div id="b-rows" style="display:grid;gap:12px"></div>
+   <div class="section" style="background:var(--bg)"><div class="label">Radar summary</div>
+     <div class="checklist" id="b-check"></div>
+     <div class="summary-bars" id="b-bars"></div>
+     <div class="verdict-box" id="b-verdict"></div></div>
+   <label class="field">Supply chain risk (revisit in Task 7): which forces you checked could disrupt how you get materials or deliver to customers, and what is your backup plan?<textarea id="b-sc"></textarea></label>
+   <label class="field">Viability reflection: how strong and viable is your business idea after this analysis? Which two forces matter most, and why?<textarea id="b-reflect"></textarea></label>
+   <label class="field">Career connection: name one job your business could create and one job these forces could reduce.<textarea id="b-career"></textarea></label>
+   <label class="field">Revision log (Task 8): what changed when you revisited this analysis before committing to your idea?<textarea id="b-revise"></textarea></label>
+   <textarea id="b-out" class="mono" style="font-size:.8rem;min-height:160px" hidden aria-label="Your PESTEL analysis as text"></textarea>
+   </div>`;
+  Deck($('#d-prac',el), {unit:'Signal', shuffle:true, doneLabel:'Practice results', items:()=>shuffle(POOL).slice(0,8).map(([b,k,v,t,y])=>({ctx:b, prompt:esc(t), parts:[PF(k), PI(v)], why:y})),
+    doneHTML:(s,t)=> s/t>=0.8 ? `<p class="pos">Ready. <a href="#step-bcp" style="color:var(--gold)">Go to Step 2</a> and scan your own business idea.</p>` : `<p class="muted">Run another round to sharpen up before Step 2.</p>`});
+  buildBCP(el);
+};
+const GUIDE = {
+ P:'Are there taxes, subsidies, grants, bans, mandates, or trade policies that affect your product or inputs? How stable is local government?',
+ Ec:'What are household incomes like for your customers? Are inflation, unemployment, or interest rates changing your costs or customers’ spending?',
+ S:'Who are your customers (age, lifestyle, values)? What trends or cultural norms make your product more or less wanted?',
+ T:'What technology do you need to produce, deliver, or market your product? Is internet access reliable? Could new technology replace you?',
+ En:'Does weather, climate, geography, or access to resources affect you? How do customers feel about waste and sustainability?',
+ L:'Which laws apply: health and safety, employment, consumer protection, environmental rules, intellectual property, licenses?'
+};
+function blankRow(){ return ['','','O','2','',false]; }
+function buildBCP(el){
+  const KEY='pestelRadar.bcp.v1';
+  let data = store.get(KEY) || {name:'',product:'',customer:'',market:'',rows:Object.fromEntries(F.map(f=>[f.k,[blankRow(),blankRow()]])),sc:'',reflect:'',career:'',revise:'',example:false};
+  const rowsEl=$('#b-rows',el);
+  const renderRows=()=>{
+    rowsEl.innerHTML = F.map(f=>`<div class="fblock c-${f.k}" data-k="${f.k}"><header><h3 style="display:flex;gap:10px;align-items:center"><span class="dotf b-${f.k}">${f.l}</span>${f.name}</h3><button class="btn ghost" type="button" data-add="${f.k}" ${data.rows[f.k].length>=4?'disabled':''}>Add a force</button></header>
+      <details><summary>Guiding questions</summary><p style="margin-top:6px">${GUIDE[f.k]}</p></details>
+      <div class="frow frow-head"><span>Force or trend</span><span>Evidence / source</span><span>Impact</span><span>Strength</span><span>Our response</span></div>
+      ${data.rows[f.k].map((r,i)=>`<div class="frow ${i?'rowsep':''}" data-i="${i}">
+        <input data-f="0" value="${esc(r[0])}" aria-label="${f.name} force ${i+1}" placeholder="Force or trend">
+        <input data-f="1" value="${esc(r[1])}" aria-label="${f.name} evidence ${i+1}" placeholder="Where did you find it?">
+        <select data-f="2" aria-label="${f.name} impact ${i+1}"><option value="O" ${r[2]==='O'?'selected':''}>Opportunity</option><option value="T" ${r[2]==='T'?'selected':''}>Threat</option><option value="B" ${r[2]==='B'?'selected':''}>Both</option></select>
+        <select data-f="3" aria-label="${f.name} strength ${i+1}"><option value="1" ${r[3]==='1'?'selected':''}>Low</option><option value="2" ${r[3]==='2'?'selected':''}>Medium</option><option value="3" ${r[3]==='3'?'selected':''}>High</option></select>
+        <input data-f="4" value="${esc(r[4])}" aria-label="${f.name} response ${i+1}" placeholder="How will you respond?">
+        <label class="sc"><input type="checkbox" data-f="5" ${r[5]?'checked':''}> Could disrupt our supply chain</label></div>`).join('')}</div>`).join('');
+    rowsEl.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{data.rows[b.dataset.add].push(blankRow());save();renderRows();});
+  };
+  rowsEl.addEventListener('input', e=>{ const t=e.target, fr=t.closest('.frow'), fb=t.closest('.fblock'); if(!fr||!fb||!t.dataset.f) return; const r=data.rows[fb.dataset.k][+fr.dataset.i]; r[+t.dataset.f] = t.type==='checkbox'?t.checked:t.value; save(); });
+  rowsEl.addEventListener('change', e=>{ const t=e.target, fr=t.closest('.frow'), fb=t.closest('.fblock'); if(!fr||!fb||!t.dataset.f) return; const r=data.rows[fb.dataset.k][+fr.dataset.i]; r[+t.dataset.f] = t.type==='checkbox'?t.checked:t.value; save(); });
+  const flds=['name','product','customer','market','sc','reflect','career','revise'];
+  const fillFields=()=>flds.forEach(k=>{ $('#b-'+k,el).value=data[k]||''; });
+  flds.forEach(k=>$('#b-'+k,el).addEventListener('input',e=>{data[k]=e.target.value;save();}));
+  function save(){ store.set(KEY,data); summarize(); }
+  function summarize(){
+    let O=0,T=0; const per=F.map(f=>{ let o=0,t=0,n=0; data.rows[f.k].forEach(r=>{ if(!r[0].trim()) return; n++; const s=+r[3]; if(r[2]!=='T') o+=s; if(r[2]!=='O') t+=s; }); O+=o;T+=t; return {f,o,t,n}; });
+    const max=Math.max(6,...per.map(p=>Math.max(p.o,p.t)));
+    const ready=per.filter(p=>p.n>=2).length;
+    $('#b-check',el).innerHTML = per.map(p=>`<span class="chip ${p.n>=2?'c-'+p.f.k:''}" style="${p.n>=2?'':'color:var(--muted)'}">${p.n>=2?'✓':'○'} ${p.f.name} ${p.n}/2</span>`).join('');
+    $('#b-bars',el).innerHTML = `<div class="sb"><span></span><span class="mono muted" style="text-align:right;font-size:.72rem">← threats</span><span class="mono muted" style="font-size:.72rem">opportunities →</span></div>`+per.map(p=>`<div class="sb"><span class="l c-${p.f.k}">${p.f.name}</span><span class="t" title="Threat score ${p.t}"><i style="width:${p.t/max*100}%"></i></span><span class="o" title="Opportunity score ${p.o}"><i style="width:${p.o/max*100}%"></i></span></div>`).join('');
+    const net=O-T, filled=per.reduce((a,p)=>a+p.n,0);
+    let head, body;
+    if(filled<6){ head='Keep scanning'; body=`You have ${filled} force${filled===1?'':'s'} so far. Add at least two for each factor (${ready} of 6 complete) before judging the market.`; }
+    else if(O>=T*1.5){ head='Attractive market'; body='Most strong forces work in your favor. Name the threats you will still watch, and explain why the opportunities outweigh them.'; }
+    else if(T>=O*1.5){ head='Risky market'; body='Threats outweigh opportunities. Consider adjusting your product, customer, or location, or testing a lower-cost version first.'; }
+    else { head='Mixed: attractive with risks to manage'; body='Opportunities and threats are close. Your responses to the high-strength threats will decide whether this idea is viable.'; }
+    $('#b-verdict',el).innerHTML=`<div class="label">Radar verdict</div><h3>${head}</h3><p class="mono" style="font-size:.85rem">Opportunity score ${O} · Threat score ${T} · Net ${net>0?'+':''}${net}</p><p>${body}</p><p class="muted" style="font-size:.82rem">Scores add the strength ratings (Low 1, Medium 2, High 3). “Both” counts on each side. The verdict is a starting point; your reasoning matters more than the number.</p>`;
+    $('#b-extag',el).innerHTML = data.example?'<span class="example-tag">Example loaded: Sprout & Spoon. Clear it before starting your own.</span>':'';
+  }
+  function asText(){
+    const L=[`PESTEL ANALYSIS – Business Canvas Project (Market component)`,`Business idea: ${data.name}`,`Product: ${data.product}`,`Target customer: ${data.customer}`,`Market: ${data.market}`,''];
+    const imp={O:'Opportunity',T:'Threat',B:'Both'}, st={1:'Low',2:'Medium',3:'High'};
+    F.forEach(f=>{ L.push(f.name.toUpperCase()); data.rows[f.k].filter(r=>r[0].trim()).forEach(r=>L.push(`• ${r[0]} | Evidence: ${r[1]||'–'} | ${imp[r[2]]}, ${st[r[3]]} | Response: ${r[4]||'–'}${r[5]?' | Supply chain risk':''}`)); L.push(''); });
+    L.push('Radar verdict: '+$('#b-verdict h3',el).textContent, '', 'Supply chain risk: '+data.sc, '', 'Viability reflection: '+data.reflect, '', 'Career connection: '+data.career, '', 'Revision log: '+data.revise);
+    return L.join('\n');
+  }
+  $('#b-copy',el).onclick=()=>{ const txt=asText(), out=$('#b-out',el), toast=$('#b-toast',el); out.value=txt;
+    const fallback=()=>{ out.hidden=false; out.focus(); out.select(); toast.textContent='Text is selected below. Press Ctrl+C (or ⌘+C) to copy.'; };
+    try{ navigator.clipboard.writeText(txt).then(()=>{ toast.textContent='Copied. Paste it into your Business Canvas Project.'; out.hidden=true; }, fallback); }catch(e){ fallback(); } };
+  $('#b-ex',el).onclick=()=>{ data=JSON.parse(JSON.stringify(EXAMPLE)); data.example=true; fillFields(); renderRows(); save(); };
+  let armed=false; $('#b-clear',el).onclick=e=>{ const b=e.currentTarget; if(!armed){ armed=true; b.textContent='Click again to erase everything'; setTimeout(()=>{armed=false;b.textContent='Clear my work';},4000); return; }
+    armed=false; b.textContent='Clear my work'; data={name:'',product:'',customer:'',market:'',rows:Object.fromEntries(F.map(f=>[f.k,[blankRow(),blankRow()]])),sc:'',reflect:'',career:'',revise:'',example:false}; fillFields(); renderRows(); save(); };
+  fillFields(); renderRows(); summarize();
+}
+
+/* ---------- TEACHER ---------- */
+BUILD.teacher = el => {
+  const rows=[
+   ['learn','Radar Academy','Topic 1.3','1.3.A, 1.3.B, 1.3.C','Project 1, Task 3, Days 1–2 (pairs with the Corley Plumbing case)','Six factor cards, 12-headline Signal Sort, three business cases with market-entry and career calls, 2-question check'],
+   ['research','Research Desk','Topic 2.3','2.3.B (EK 2.3.B.1–3), 2.3.C.1','Secondary vs. primary research lessons','Match PESTEL research questions to the best source'],
+   ['saving','Savings Under Pressure','Topic 3.1','3.1.B (EK 3.1.B.1–4), 3.1.C','Why and how people save; savings plans','Inflation vs. interest calculator; factor-and-effect sort'],
+   ['investing','Market Pulse','Topic 3.5','3.5.C (EK 3.5.C.4–6)','Stocks, capital gains, rate of return','Predict share price moves from PESTEL news; compute annual return'],
+   ['planning','Budget Storm','Topic 3.6','3.6.B.3, 3.6.B.6, 3.6.C.1','Projected budgets, profit margins, percent change','Apply PESTEL events to a projected budget; planning decisions'],
+   ['swot','PESTEL to SWOT','Topic 4.4','4.4.C, 4.4.D (EK 4.4.D.2)','SWOT analysis','Sort internal vs. external items; PESTEL lands in O and T'],
+   ['advisor','Advisor’s Radar','Unit 5','Financial Advisor Project','Before household recommendations','Advise a household through six PESTEL forces'],
+   ['project','Practice + Business Canvas Project','Topic 1.3 · Unit 1 deliverable','Market – PESTEL analysis; rubric Row E (Market component)','Task 3, Day 3; revisit in Task 7 (supply chain risk) and Task 8 (revise before committing)','Random practice rounds, then a PESTEL builder with two-plus forces per factor, auto summary, reflection, and copy-to-paste text']
+  ];
+  el.innerHTML = `<div class="section"><div class="section-head"><div class="label">Teacher map</div><h2>Where each tab plugs into the course</h2>
+   <p class="lede muted">Each tab stands alone, so you can assign one at a time. To send students straight to a tab, add its link token to the end of this page’s link (for example, the page link followed by <span class="mono">#saving</span>).</p></div>
+   <div class="tbl-wrap"><table><thead><tr><th>Link token</th><th>Tab</th><th>CED placement</th><th>Learning objectives</th><th>Use it during</th><th>What students do</th></tr></thead><tbody>
+   ${rows.map(r=>`<tr><td class="mono">#${r[0]}</td><td><a href="#${r[0]}" data-go="${r[0]}" style="color:var(--gold)">${r[1]}</a></td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td></tr>`).join('')}
+   </tbody></table></div></div>
+   <div class="section"><div class="section-head"><div class="label">Notes</div><h2>Teaching notes</h2></div>
+   <ul style="margin:0;padding-left:20px;display:grid;gap:8px;max-width:75ch">
+    <li><b>Twin E’s and political vs. legal.</b> The Project 1 teacher tip flags political vs. legal as hard to tell apart. In the CED, taxes, subsidies, mandates, and bans are political (EK 1.3.A.2); specific laws and regulations a business must follow are legal (EK 1.3.A.7). Consumer environmental perspectives are environmental, not social (EK 1.3.A.6).</li>
+    <li><b>Day 2 exit ticket.</b> The career steps in Level 3 mirror the Corley Plumbing exit ticket: one job created and one job reduced by PESTEL factors (EK 1.3.B.7–1.3.B.8).</li>
+    <li><b>Student work stays in the student’s browser.</b> The Business Canvas Project builder saves on the device the student uses. Students submit by clicking “Copy my PESTEL analysis” and pasting the text into their Business Canvas Project document or your LMS.</li>
+    <li><b>Quick checks.</b> Each tab ends with a two-question multiple-choice check. Correct answers are spread across A–D.</li>
+    <li><b>Fictional content.</b> All businesses, households, and figures are invented for practice. Swap in a local business or current headline for discussion.</li>
+   </ul></div>`;
+  el.querySelectorAll('[data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();show(a.dataset.go,true);window.scrollTo({top:0});});
+};
+
+/* ---------- radar dots + boot ---------- */
+(function(){ const r=$('.radar'); F.forEach((f,i)=>{ const a=(i/6)*Math.PI*2 - Math.PI/2, rad=i%2?30:40; const d=document.createElement('span'); d.className='dot b-'+f.k; d.textContent=f.l; d.style.left=(50+rad*Math.cos(a))+'%'; d.style.top=(50+rad*Math.sin(a))+'%'; r.appendChild(d); }); })();
+const h0=(location.hash||'').slice(1), saved=store.get('pestelRadar.tab');
+const startTab = BUILD[h0] ? h0 : (h0.startsWith('step-') ? 'project' : (BUILD[saved] ? saved : 'learn'));
+show(startTab, false);
+window.addEventListener('hashchange',()=>{ const h=location.hash.slice(1); if(BUILD[h]) show(h,false); });
+</script>
+</body></html>
